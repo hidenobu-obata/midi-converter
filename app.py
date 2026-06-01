@@ -31,7 +31,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ---------------------------------------------------------------------
-# 🌐 メイン画面（フロントエンドのHTMLを返す）
+# 🌐 メイン画面（「月と海」の幻想的なUIデザイン）
 # ---------------------------------------------------------------------
 @app.route('/')
 def index():
@@ -40,34 +40,232 @@ def index():
     <html lang="ja">
     <head>
         <meta charset="utf-8">
-        <title>Audio to MIDI Converter</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Audio to MIDI Converter | Moon & Sea</title>
         <style>
-            body { font-family: sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-            .box { border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 10px; }
-            input[type="file"] { margin: 20px 0; }
-            button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-            button:disabled { background: #ccc; }
-            #status { margin-top: 20px; font-weight: bold; color: #333; }
+            /* 夜空と深海をイメージしたグラデーション背景 */
+            body {
+                font-family: 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(to bottom, #0B1021 0%, #172A45 50%, #020C1B 100%);
+                color: #E2E8F0;
+                min-height: 100vh;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                overflow-x: hidden;
+                position: relative;
+            }
+
+            /* 輝く満月 */
+            .moon {
+                position: absolute;
+                top: 10%;
+                right: 15%;
+                width: 100px;
+                height: 100px;
+                background: radial-gradient(circle, #FFFDE4 0%, #F3E5AB 70%, #D4AF37 100%);
+                border-radius: 50%;
+                box-shadow: 0 0 40px 15px rgba(243, 229, 171, 0.4);
+                z-index: 1;
+            }
+
+            /* メインのカードコンテナ */
+            .container {
+                background: rgba(23, 42, 69, 0.7);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(100, 255, 218, 0.2);
+                padding: 40px;
+                text-align: center;
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                max-width: 450px;
+                width: 90%;
+                z-index: 10;
+                box-sizing: border-box;
+            }
+
+            h2 {
+                color: #64FFDA;
+                font-size: 24px;
+                margin-top: 0;
+                margin-bottom: 10px;
+                letter-spacing: 1px;
+                text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+            }
+
+            p.subtitle {
+                color: #8892B0;
+                font-size: 14px;
+                margin-bottom: 30px;
+            }
+
+            /* 点線で囲まれたアップロードエリア */
+            .upload-box {
+                border: 2px dashed rgba(100, 255, 218, 0.4);
+                padding: 30px 20px;
+                border-radius: 15px;
+                background: rgba(10, 25, 47, 0.5);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .upload-box:hover {
+                border-color: #64FFDA;
+                background: rgba(10, 25, 47, 0.8);
+                box-shadow: 0 0 15px rgba(100, 255, 218, 0.1);
+            }
+
+            input[type="file"] {
+                display: none;
+            }
+
+            .file-label {
+                color: #CCD6F6;
+                cursor: pointer;
+                font-size: 15px;
+                display: block;
+            }
+
+            .file-custom-btn {
+                display: inline-block;
+                padding: 8px 16px;
+                background: rgba(100, 255, 218, 0.1);
+                border: 1px solid #64FFDA;
+                color: #64FFDA;
+                border-radius: 5px;
+                margin-top: 10px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+
+            /* 変換実行ボタン */
+            .submit-btn {
+                background: linear-gradient(135deg, #64FFDA 0%, #00B4D8 100%);
+                color: #0a192f;
+                border: none;
+                padding: 14px 28px;
+                border-radius: 30px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                width: 100%;
+                margin-top: 25px;
+                box-shadow: 0 4px 15px rgba(100, 255, 218, 0.3);
+                transition: all 0.3s ease;
+            }
+
+            .submit-btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(100, 255, 218, 0.5);
+            }
+
+            .submit-btn:disabled {
+                background: #4A5568;
+                color: #A0AEC0;
+                cursor: not-allowed;
+                box-shadow: none;
+                transform: none;
+            }
+
+            /* ステータス、エラー、ダウンロードエリア */
+            #status {
+                margin-top: 25px;
+                font-size: 14px;
+                line-height: 1.6;
+                font-weight: 500;
+            }
+
+            .loading-text {
+                color: #00B4D8;
+                animation: pulse 2s infinite;
+            }
+
+            .success-text {
+                color: #64FFDA;
+                text-shadow: 0 0 8px rgba(100, 255, 218, 0.3);
+            }
+
+            .error-text {
+                color: #FF6B6B;
+            }
+
+            .download-btn {
+                display: inline-block;
+                background: #64FFDA;
+                color: #0a192f;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-weight: bold;
+                text-decoration: none;
+                margin-top: 15px;
+                box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+                transition: all 0.2s ease;
+            }
+
+            .download-btn:hover {
+                background: #52DEBD;
+                transform: scale(1.03);
+            }
+
+            @keyframes pulse {
+                0% { opacity: 0.6; }
+                50% { opacity: 1; }
+                100% { opacity: 0.6; }
+            }
+
+            /* 水平線（海の波打ち際をイメージ） */
+            .sea-line {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 120px;
+                background: linear-gradient(to top, rgba(2, 12, 27, 0.8), rgba(23, 42, 69, 0));
+                border-top: 1px solid rgba(100, 255, 218, 0.15);
+                z-index: 2;
+            }
         </style>
     </head>
     <body>
-        <h2>音声 ➡ MIDI 変換（Render 2G安定版）</h2>
-        <div class="box">
+        <div class="moon"></div>
+        
+        <div class="container">
+            <h2>Audio to MIDI</h2>
+            <p class="subtitle">海の底から響く音を、光の粒のMIDIへ</p>
+            
             <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" accept="audio/*" required><br>
-                <button type="submit" id="subBtn">MIDIに変換する</button>
+                <div class="upload-box" onclick="document.getElementById('audio-file').click()">
+                    <input type="file" name="file" id="audio-file" accept="audio/*" required onchange="updateFileName(this)">
+                    <span class="file-label" id="file-name-text">音声ファイルをここにドロップ、または選択</span>
+                    <span class="file-custom-btn">ファイルを選択</span>
+                </div>
+                <button type="submit" id="subBtn" class="submit-btn">MIDIに変換する</button>
             </form>
             <div id="status"></div>
         </div>
 
+        <div class="sea-line"></div>
+
         <script>
+            function updateFileName(input) {
+                const text = document.getElementById('file-name-text');
+                if (input.files && input.files[0]) {
+                    text.innerText = "選択中: " + input.files[0].name;
+                    text.style.color = "#64FFDA";
+                }
+            }
+
             document.getElementById('uploadForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const btn = document.getElementById('subBtn');
                 const status = document.getElementById('status');
                 
                 btn.disabled = true;
-                status.innerText = "AI解析中... (最大5分ほどかかります。画面を閉じずにお待ちください)";
+                status.innerHTML = `<span class="loading-text">🌕 月の引力でAI解析中...<br>(最大5分ほどかかります。画面を閉じずにお待ちください)</span>`;
                 
                 const formData = new FormData(e.target);
                 try {
@@ -75,12 +273,15 @@ def index():
                     const data = await res.json();
                     
                     if (data.success) {
-                        status.innerHTML = `<span style="color:green;">変換成功！</span><br><br><a href="${data.download_url}" download><button style="background:green;">MIDIファイルをダウンロード</button></a>`;
+                        status.innerHTML = `
+                            <span class="success-text">✨ 変換に成功しました！🌊</span><br>
+                            <a href="${data.download_url}" class="download-btn" download>MIDIファイルをすくい上げる</a>
+                        `;
                     } else {
-                        status.innerHTML = `<span style="color:red;">エラー: ${data.error}</span>`;
+                        status.innerHTML = `<span class="error-text">❌ エラー: ${data.error}</span>`;
                     }
                 } catch (err) {
-                    status.innerHTML = '<span style="color:red;">通信エラーが発生しました。ファイルが大きすぎるかタイムアウトしました。</span>';
+                    status.innerHTML = '<span class="error-text">❌ 通信エラーが発生しました。ファイルが大きすぎるか、サーバーの制限時間に達しました。</span>';
                 } finally {
                     btn.disabled = false;
                 }
@@ -91,9 +292,8 @@ def index():
     '''
 
 # ---------------------------------------------------------------------
-# 🚀 音声 ➡ MIDI 変換API
+# 🚀 音声 ➡ MIDI 変換API（最新Basic Pitch仕様に100%修正済）
 # ---------------------------------------------------------------------
-# 👇 【修正箇所】余計な引数を削除しました！
 @app.route('/convert', methods=['POST'])
 def convert_audio():
     if 'file' not in request.files:
@@ -109,13 +309,15 @@ def convert_audio():
         file.save(input_path)
         
         try:
-            # Basic Pitch を安全に呼び出す
+            # 最新ライブラリに必要な「sonify_midi」と「model_or_model_path」を完全指定
             predict_and_save(
                 audio_path_list=[input_path],
                 output_directory=app.config['OUTPUT_FOLDER'],
                 save_midi=True,
-                save_model_outputs=False,
-                save_notes=False,
+                sonify_midi=False,            # 必須項目：無駄なwav波形生成を切ってメモリを死守
+                model_or_model_path=None,     # 必須項目：内蔵の標準AIモデルを使用
+                save_model_outputs=False,     # 無駄なメモリ消費を抑制
+                save_notes=False,             # 無駄なメモリ消費を抑制
             )
             
             base_name = os.path.splitext(filename)[0]
@@ -145,7 +347,7 @@ def download_file(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
 # ---------------------------------------------------------------------
-# 🛠️ 起動設定
+# 🛠️ 起動設定（Render環境のポート10000に完全同期）
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
