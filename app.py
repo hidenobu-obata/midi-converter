@@ -11,30 +11,30 @@ os.environ["OMP_NUM_THREADS"] = "1"               # CPUの並列処理を1つに
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
-# 【修正】最新のBasic Pitchから、標準モデルを読み込むためのモジュールをインポート
+# Basic Pitchと標準モデルのインポート
 from basic_pitch.inference import predict_and_save
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
+# 🎼 MIDIをチャンネル別に仕分けるためのライブラリ
+import pretty_midi
+
 app = Flask(__name__)
 
-# フォルダの設定（RenderのDocker環境に合わせたパス）
 UPLOAD_FOLDER = '/tmp/uploads'
 OUTPUT_FOLDER = '/tmp/output'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 
-# 起動時に必要なフォルダを自動作成
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# 許可する音声ファイルの拡張子
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'ogg', 'flac', 'm4a'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ---------------------------------------------------------------------
-# 🌐 メイン画面（「月と海」の幻想的なUIデザイン）
+# 🌐 メイン画面（「月と海」UI）
 # ---------------------------------------------------------------------
 @app.route('/')
 def index():
@@ -211,7 +211,7 @@ def index():
         
         <div class="container">
             <h2>Audio to MIDI</h2>
-            <p class="subtitle">海の底から響く音を、光の粒のMIDIへ</p>
+            <p class="subtitle">海の底から響く音を、主旋律と伴奏に美しく紡ぎ分ける</p>
             
             <form id="uploadForm" enctype="multipart/form-data">
                 <div class="upload-box" onclick="document.getElementById('audio-file').click()">
@@ -241,7 +241,7 @@ def index():
                 const status = document.getElementById('status');
                 
                 btn.disabled = true;
-                status.innerHTML = `<span class="loading-text">🌕 月の引力でAI解析中...<br>(最大5分ほどかかります。画面を閉じずにお待ちください)</span>`;
+                status.innerHTML = `<span class="loading-text">🌕 月の引力でAI解析 & 旋律分離中...<br>(最大5分ほどかかります。画面を閉じずにお待ちください)</span>`;
                 
                 const formData = new FormData(e.target);
                 try {
@@ -250,7 +250,7 @@ def index():
                     
                     if (data.success) {
                         status.innerHTML = `
-                            <span class="success-text">✨ 変換に成功しました！🌊</span><br>
+                            <span class="success-text">✨ 主旋律(Ch1)・伴奏(Ch2)の分離に成功！🌊</span><br>
                             <a href="${data.download_url}" class="download-btn" download>MIDIファイルをすくい上げる</a>
                         `;
                     } else {
@@ -268,7 +268,7 @@ def index():
     '''
 
 # ---------------------------------------------------------------------
-# 🚀 音声 ➡ MIDI 変換API（AIモデルのパス指定を完全修正）
+# 🚀 音声 ➡ MIDI 変換API（主旋律・伴奏のポート分離ロジック搭載）
 # ---------------------------------------------------------------------
 @app.route('/convert', methods=['POST'])
 def convert_audio():
@@ -285,30 +285,61 @@ def convert_audio():
         file.save(input_path)
         
         try:
-            # 【完全修正】Noneではなく、内蔵モデルの正式なパスを直接流し込みます
+            # 1. AIによるMIDIデータ一時生成
             predict_and_save(
                 audio_path_list=[input_path],
                 output_directory=app.config['OUTPUT_FOLDER'],
                 save_midi=True,
                 sonify_midi=False,
-                model_or_model_path=ICASSP_2022_MODEL_PATH,  # ← 内部の規定パスを明示
+                model_or_model_path=ICASSP_2022_MODEL_PATH,
                 save_model_outputs=False,
                 save_notes=False,
             )
             
             base_name = os.path.splitext(filename)[0]
-            midi_filename = f"{base_name}_basic_pitch.mid"
+            raw_midi_filename = f"{base_name}_basic_pitch.mid"
+            raw_midi_path = os.path.join(app.config['OUTPUT_FOLDER'], raw_midi_filename)
             
-            if os.path.exists(os.path.join(app.config['OUTPUT_FOLDER'], midi_filename)):
-                return jsonify({
-                    'success': True,
-                    'download_url': f'/download/{midi_filename}'
-                })
-            else:
-                return jsonify({'success': False, 'error': 'MIDIファイルの生成に失敗しました。'}), 500
+            if not os.path.exists(raw_midi_path):
+                return jsonify({'success': False, 'error': 'AI解析によるベースMIDIの生成に失敗しました。'}), 500
+
+            # =====================================================================
+            # 🎹 【旋律・伴奏 分離ロジック】ここからポート1・2へ振り分けます
+            # =====================================================================
+            pm = pretty_midi.PrettyMIDI(raw_midi_path)
+            
+            # 出力用の新しいMIDIデータ構造を作成
+            separated_pm = pretty_midi.PrettyMIDI()
+            
+            # トラック（インストゥルメント）を2つ用意
+            # ※PrettyMIDIの「is_drum=False」でチャンネル1から順に割り当てられます
+            melody_track = pretty_midi.Instrument(program=0, name="Melody (Port 1)")
+            backing_track = pretty_midi.Instrument(program=0, name="Backing (Port 2)")
+            
+            # AIが吐き出した全ての音符をスキャンして仕分ける
+            for instrument in pm.instruments:
+                for note in instrument.notes:
+                    # 目安として、高音域（MIDIノート番号64＝ミ以上）を主旋律(Port 1)に、それ以外を伴奏(Port 2)にする
+                    if note.pitch >= 64:
+                        melody_track.notes.append(note)
+                    else:
+                        backing_track.notes.append(note)
+            
+            # トラックを登録（これで内部的にCh1, Ch2としてポートが分かれます）
+            separated_pm.instruments.append(melody_track)
+            separated_pm.instruments.append(backing_track)
+            
+            # 完成した分離済MIDIファイルを上書き保存
+            separated_pm.write(raw_midi_path)
+            # =====================================================================
+
+            return jsonify({
+                'success': True,
+                'download_url': f'/download/{raw_midi_filename}'
+            })
                 
         except Exception as e:
-            return jsonify({'success': False, 'error': f'変換エラー: {str(e)}'}), 500
+            return jsonify({'success': False, 'error': f'変換・分離エラー: {str(e)}'}), 500
         finally:
             if os.path.exists(input_path):
                 os.remove(input_path)
