@@ -1,0 +1,214 @@
+/* ベースリセットと夜の海のグラデーション */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+    background: linear-gradient(180deg, #050b1a 0%, #10254c 50%, #0a1931 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* レスポンシブ対応コンテナ */
+.container {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+    position: relative;
+}
+
+/* 月の淡い光の表現 */
+.moon {
+    position: absolute;
+    top: -40px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #fffde6 0%, #fff5a3 40%, transparent 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 40px #fffacc;
+    opacity: 0.8;
+    z-index: 0;
+}
+
+header {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    color: #f0f7ff;
+    text-shadow: 0 0 10px rgba(240, 247, 255, 0.6);
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: #8da2c4;
+}
+
+/* 淡い光を放つカード（海に浮かぶ静かな光） */
+.card {
+    background: rgba(16, 32, 66, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 40px 30px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 25px rgba(100, 150, 255, 0.15);
+    position: relative;
+    z-index: 1;
+}
+
+/* ビュー制御 */
+.view {
+    display: none;
+}
+.view.active {
+    display: block;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.instruction {
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    margin-bottom: 25px;
+}
+
+#file-name-display {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #a7f3d0;
+    word-break: break-all;
+}
+
+/* ボタンデザイン（淡く光る水面をイメージ） */
+.btn {
+    display: inline-block;
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid #5b84c4;
+    color: #e2e8f0;
+    border-radius: 30px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.btn:hover {
+    background: rgba(91, 132, 196, 0.2);
+    box-shadow: 0 0 15px rgba(91, 132, 196, 0.4);
+    border-color: #93c5fd;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border: none;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+    box-shadow: 0 4px 20px rgba(96, 165, 250, 0.6);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+    border: none;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-link {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    margin-top: 20px;
+    font-size: 0.85rem;
+    text-decoration: underline;
+}
+.btn-link:hover {
+    color: #e2e8f0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* ローディングアニメーション（波打つ淡い光のリング） */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(147, 197, 253, 0.2);
+    border-top-color: #93c5fd;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 15px rgba(147, 197, 253, 0.3);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 1.05rem;
+    color: #e2e8f0;
+}
+.loading-sub {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 5px;
+}
+
+/* 成功・エラーテキスト */
+.success-icon {
+    font-size: 3rem;
+    color: #34d399;
+    margin-bottom: 15px;
+    text-shadow: 0 0 15px rgba(52, 211, 153, 0.5);
+}
+
+.error {
+    color: #f87171;
+    font-size: 0.9rem;
+    margin-top: 15px;
+    min-height: 1.2rem;
+    text-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
+}
+
+/* フッターと指定コピーライト */
+footer {
+    margin-top: 40px;
+    font-size: 0.75rem;
+    color: #475569;
+    letter-spacing: 1px;
+}
+
+/* スマホ・レスポンシブ微調整 */
+@media (max-width: 480px) {
+    .card {
+        padding: 30px 20px;
+    }
+    header h1 {
+        font-size: 1.5rem;
+    }
+}

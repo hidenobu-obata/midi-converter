@@ -1,0 +1,168 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Converter - 三日月と海</title>
+    <style>
+        /* ベーススタイル */
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #0d1117, #1a202c, #0d1117);
+            color: #e2e8f0;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 幻想的な三日月と海の背景要素 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 10%;
+            right: 15%;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 70% 30%, #fef3c7, rgba(254, 243, 199, 0) 70%);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #fef3c7, 0 0 80px rgba(254, 243, 199, 0.6);
+            z-index: -2;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            bottom: -50px;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(to top, rgba(13, 17, 23, 0.8), rgba(0, 119, 182, 0.4), rgba(13, 17, 23, 0));
+            filter: blur(10px);
+            z-index: -1;
+        }
+
+        /* コンテナ (レスポンシブ幅) */
+        .container {
+            background: rgba(13, 17, 23, 0.7);
+            padding: 30px;
+            margin: 50px auto;
+            max-width: 600px;
+            width: 90%;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        /* タイトル */
+        h2 { color: #fef3c7; font-weight: 200; margin-bottom: 30px; }
+
+        /* アップロードフォーム */
+        #uploadForm { margin-bottom: 20px; }
+        input[type="file"] {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a0aec0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: calc(100% - 20px);
+            max-width: 300px;
+        }
+        button[type="submit"] {
+            background: #0077b6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: background 0.3s, transform 0.1s;
+        }
+        button[type="submit"]:hover { background: #0096c7; }
+        button[type="submit"]:active { transform: scale(0.98); }
+
+        /* ローディングと結果エリア */
+        #loading { display: none; margin-top: 20px; color: #a0aec0; }
+        #result { margin-top: 30px; }
+
+        /* 生成されたMIDIのダウンロードエリア (1つのボタンに変更、レスポンシブ) */
+        .download-box {
+            background: rgba(0, 119, 182, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 119, 182, 0.3);
+            text-align: center;
+            margin: 0 auto;
+            max-width: 400px;
+        }
+        .file-info { font-size: 0.9em; color: #a0aec0; margin-bottom: 15px; word-break: break-all; }
+        
+        .btn-download {
+            background: linear-gradient(90deg, #e0a96d, #0077b6);
+            color: white;
+            padding: 14px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: block;
+            margin: 10px auto;
+            font-weight: bold;
+            font-size: 1em;
+            transition: opacity 0.3s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .btn-download:hover { opacity: 0.9; }
+        .btn-download:active { transform: scale(0.98); }
+
+        /* タブレット・スマホ用のレスポンシブ調整 */
+        @media (max-width: 480px) {
+            .container { padding: 20px; margin-top: 30px; }
+            h2 { font-size: 1.5em; }
+            .download-box { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>MP3 to MIDI Converter</h2>
+        <form id="uploadForm">
+            <input type="file" name="file" accept=".mp3" required><br>
+            <button type="submit">採譜を開始</button>
+        </form>
+        <div id="loading">🎵 AIが分離と採譜を実行中（3〜4分かかります）...</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').innerHTML = '';
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('result').innerHTML = `
+                        <h3 style="color: #fef3c7;">採譜が完了しました！</h3>
+                        <div class="download-box">
+                            <div class="file-info">📄 変換完了: ${data.filename}</div>
+                            <a href="${data.download_url}" class="btn-download">🌙 🌊 一体型MIDIをダウンロード</a>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `<p style="color:#fc8181;">エラー: ${data.error}</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').innerHTML = '<p style="color:#fc8181;">通信エラーが発生しました</p>';
+            }
+        };
+    </script>
+</body>
+</html>
