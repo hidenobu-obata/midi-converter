@@ -6,6 +6,8 @@ services:
       pip install -r requirements.txt
       apt-get update
       apt-get install -y ffmpeg
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --timeout 300 --workers 1
   - key: PYTHON_VERSION
         value: 3.10.11 # 使用したいPythonのバージョン
+    buildpacks:
+      - url: https://github.com/render-examples/ffmpeg-buildpack.git
