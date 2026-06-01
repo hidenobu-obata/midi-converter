@@ -10,7 +10,10 @@ os.environ["OMP_NUM_THREADS"] = "1"               # CPUの並列処理を1つに
 
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+
+# 【修正】最新のBasic Pitchから、標準モデルを読み込むためのモジュールをインポート
 from basic_pitch.inference import predict_and_save
+from basic_pitch import ICASSP_2022_MODEL_PATH
 
 app = Flask(__name__)
 
@@ -43,7 +46,6 @@ def index():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Audio to MIDI Converter | Moon & Sea</title>
         <style>
-            /* 夜空と深海をイメージしたグラデーション背景 */
             body {
                 font-family: 'Helvetica Neue', Arial, sans-serif;
                 background: linear-gradient(to bottom, #0B1021 0%, #172A45 50%, #020C1B 100%);
@@ -57,8 +59,6 @@ def index():
                 overflow-x: hidden;
                 position: relative;
             }
-
-            /* 輝く満月 */
             .moon {
                 position: absolute;
                 top: 10%;
@@ -70,8 +70,6 @@ def index():
                 box-shadow: 0 0 40px 15px rgba(243, 229, 171, 0.4);
                 z-index: 1;
             }
-
-            /* メインのカードコンテナ */
             .container {
                 background: rgba(23, 42, 69, 0.7);
                 backdrop-filter: blur(12px);
@@ -86,7 +84,6 @@ def index():
                 z-index: 10;
                 box-sizing: border-box;
             }
-
             h2 {
                 color: #64FFDA;
                 font-size: 24px;
@@ -95,14 +92,11 @@ def index():
                 letter-spacing: 1px;
                 text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
             }
-
             p.subtitle {
                 color: #8892B0;
                 font-size: 14px;
                 margin-bottom: 30px;
             }
-
-            /* 点線で囲まれたアップロードエリア */
             .upload-box {
                 border: 2px dashed rgba(100, 255, 218, 0.4);
                 padding: 30px 20px;
@@ -111,24 +105,20 @@ def index():
                 cursor: pointer;
                 transition: all 0.3s ease;
             }
-
             .upload-box:hover {
                 border-color: #64FFDA;
                 background: rgba(10, 25, 47, 0.8);
                 box-shadow: 0 0 15px rgba(100, 255, 218, 0.1);
             }
-
             input[type="file"] {
                 display: none;
             }
-
             .file-label {
                 color: #CCD6F6;
                 cursor: pointer;
                 font-size: 15px;
                 display: block;
             }
-
             .file-custom-btn {
                 display: inline-block;
                 padding: 8px 16px;
@@ -140,8 +130,6 @@ def index():
                 font-size: 13px;
                 font-weight: bold;
             }
-
-            /* 変換実行ボタン */
             .submit-btn {
                 background: linear-gradient(135deg, #64FFDA 0%, #00B4D8 100%);
                 color: #0a192f;
@@ -156,12 +144,10 @@ def index():
                 box-shadow: 0 4px 15px rgba(100, 255, 218, 0.3);
                 transition: all 0.3s ease;
             }
-
             .submit-btn:hover:not(:disabled) {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(100, 255, 218, 0.5);
             }
-
             .submit-btn:disabled {
                 background: #4A5568;
                 color: #A0AEC0;
@@ -169,29 +155,23 @@ def index():
                 box-shadow: none;
                 transform: none;
             }
-
-            /* ステータス、エラー、ダウンロードエリア */
             #status {
                 margin-top: 25px;
                 font-size: 14px;
                 line-height: 1.6;
                 font-weight: 500;
             }
-
             .loading-text {
                 color: #00B4D8;
                 animation: pulse 2s infinite;
             }
-
             .success-text {
                 color: #64FFDA;
                 text-shadow: 0 0 8px rgba(100, 255, 218, 0.3);
             }
-
             .error-text {
                 color: #FF6B6B;
             }
-
             .download-btn {
                 display: inline-block;
                 background: #64FFDA;
@@ -205,19 +185,15 @@ def index():
                 box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
                 transition: all 0.2s ease;
             }
-
             .download-btn:hover {
                 background: #52DEBD;
                 transform: scale(1.03);
             }
-
             @keyframes pulse {
                 0% { opacity: 0.6; }
                 50% { opacity: 1; }
                 100% { opacity: 0.6; }
             }
-
-            /* 水平線（海の波打ち際をイメージ） */
             .sea-line {
                 position: absolute;
                 bottom: 0;
@@ -292,7 +268,7 @@ def index():
     '''
 
 # ---------------------------------------------------------------------
-# 🚀 音声 ➡ MIDI 変換API（最新Basic Pitch仕様に100%修正済）
+# 🚀 音声 ➡ MIDI 変換API（AIモデルのパス指定を完全修正）
 # ---------------------------------------------------------------------
 @app.route('/convert', methods=['POST'])
 def convert_audio():
@@ -309,15 +285,15 @@ def convert_audio():
         file.save(input_path)
         
         try:
-            # 最新ライブラリに必要な「sonify_midi」と「model_or_model_path」を完全指定
+            # 【完全修正】Noneではなく、内蔵モデルの正式なパスを直接流し込みます
             predict_and_save(
                 audio_path_list=[input_path],
                 output_directory=app.config['OUTPUT_FOLDER'],
                 save_midi=True,
-                sonify_midi=False,            # 必須項目：無駄なwav波形生成を切ってメモリを死守
-                model_or_model_path=None,     # 必須項目：内蔵の標準AIモデルを使用
-                save_model_outputs=False,     # 無駄なメモリ消費を抑制
-                save_notes=False,             # 無駄なメモリ消費を抑制
+                sonify_midi=False,
+                model_or_model_path=ICASSP_2022_MODEL_PATH,  # ← 内部の規定パスを明示
+                save_model_outputs=False,
+                save_notes=False,
             )
             
             base_name = os.path.splitext(filename)[0]
@@ -347,7 +323,7 @@ def download_file(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
 # ---------------------------------------------------------------------
-# 🛠️ 起動設定（Render環境のポート10000に完全同期）
+# 🛠️ 起動設定
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
