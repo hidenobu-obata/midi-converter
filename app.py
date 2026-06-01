@@ -2,7 +2,7 @@ import os
 import sys
 
 # =====================================================================
-# 🚨 【最重要】TensorFlowのメモリ爆食いを起動前に強制ストップする設定
+# 🚨 TensorFlowのメモリ爆食いを起動前に強制ストップする設定
 # =====================================================================
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"          # 余計なログでメモリを消費させない
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"  # メモリを一気に確保せず、最小限ずつ使う
@@ -91,9 +91,10 @@ def index():
     '''
 
 # ---------------------------------------------------------------------
-# 🚀 音声 ➡ MIDI 変換API（ここが心臓部）
+# 🚀 音声 ➡ MIDI 変換API
 # ---------------------------------------------------------------------
-@app.route('/convert', block_output=True, methods=['POST'])
+# 👇 【修正箇所】余計な引数を削除しました！
+@app.route('/convert', methods=['POST'])
 def convert_audio():
     if 'file' not in request.files:
         return jsonify({'success': False, 'error': 'ファイルがありません'}), 400
@@ -108,20 +109,18 @@ def convert_audio():
         file.save(input_path)
         
         try:
-            # Basic Pitch を安全に呼び出す（メモリを最小限に抑えるため予測時に各種フラグを設定）
+            # Basic Pitch を安全に呼び出す
             predict_and_save(
                 audio_path_list=[input_path],
                 output_directory=app.config['OUTPUT_FOLDER'],
                 save_midi=True,
-                save_model_outputs=False,  # 無駄なメモリ消費を抑えるためOFF
-                save_notes=False,          # 無駄なメモリ消費を抑えるためOFF
+                save_model_outputs=False,
+                save_notes=False,
             )
             
-            # 生成されたMIDIファイルの名前を特定 (.mp3 などの後ろに _basic_pitch.mid が付く仕様)
             base_name = os.path.splitext(filename)[0]
             midi_filename = f"{base_name}_basic_pitch.mid"
             
-            # 安全にファイルが作られたか確認
             if os.path.exists(os.path.join(app.config['OUTPUT_FOLDER'], midi_filename)):
                 return jsonify({
                     'success': True,
@@ -133,7 +132,6 @@ def convert_audio():
         except Exception as e:
             return jsonify({'success': False, 'error': f'変換エラー: {str(e)}'}), 500
         finally:
-            # 2Gのメモリを逼迫させないよう、使い終わった元の音声ファイルは即削除
             if os.path.exists(input_path):
                 os.remove(input_path)
                 
@@ -147,7 +145,7 @@ def download_file(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename, as_attachment=True)
 
 # ---------------------------------------------------------------------
-# 🛠️ 起動設定（Renderの環境変数ポート10000番に自動同期）
+# 🛠️ 起動設定
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
